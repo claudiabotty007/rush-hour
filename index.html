@@ -1,0 +1,632 @@
+<title>Rush Hour</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column on phones (header, board, controls, puzzle list); board left and puzzle list right from 880px.
+   The board is a slate tray holding an asphalt lot, with a gap in the right wall at the red car's row. */
+:root {
+  --bg: #e6eaee;
+  --surface: #f4f6f8;
+  --fg: #182027;
+  --muted: #56636f;
+  --line: #c8d0d7;
+  --accent: #f2a900;
+  --accent-fg: #1b1500;
+  --go: #1f9d57;
+  --tray: #44586d;
+  --lot: #2a3138;
+  --lot-line: rgba(255, 255, 255, 0.08);
+  --ring: #ffffff;
+  --solved: #d7e6dc;
+  --red: #e5342d;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161b;
+    --surface: #1a2128;
+    --fg: #e8edf1;
+    --muted: #95a3af;
+    --line: #2b353e;
+    --accent: #ffb81c;
+    --go: #3ecf7d;
+    --tray: #2f4152;
+    --lot: #1d2328;
+    --solved: #1f3328;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161b;
+  --surface: #1a2128;
+  --fg: #e8edf1;
+  --muted: #95a3af;
+  --line: #2b353e;
+  --accent: #ffb81c;
+  --go: #3ecf7d;
+  --tray: #2f4152;
+  --lot: #1d2328;
+  --solved: #1f3328;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+}
+.page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: clip;
+}
+
+header { padding-bottom: 14px; border-bottom: 3px dashed var(--accent); margin-bottom: 22px; }
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sub { margin: 6px 0 0; color: var(--muted); }
+
+.layout { display: grid; gap: 28px; }
+.game, .levels { min-width: 0; }
+@media (min-width: 880px) {
+  .layout { grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 56px; align-items: start; }
+}
+
+.puzzle-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.puzzle-name { font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.1; }
+.puzzle-name small { display: block; font-family: var(--font-body); font-weight: 500; font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+.nav { display: flex; gap: 8px; }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:hover:not(:disabled) { border-color: var(--fg); }
+button:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible, .veh:focus-visible, .lvl:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
+
+.hud { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; border-block: 1px solid var(--line); }
+.hud div { padding: 8px 0 8px 14px; }
+.hud div + div { border-left: 1px solid var(--line); }
+.hud dt { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.hud dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+
+/* board */
+.tray {
+  position: relative;
+  background: var(--tray);
+  border-radius: 14px;
+  padding: 12px 24px 12px 12px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.lot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: var(--lot);
+  background-image:
+    linear-gradient(var(--lot-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lot-line) 1px, transparent 1px);
+  background-size: calc(100% / 6) calc(100% / 6);
+  border-radius: 6px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.exit {
+  position: absolute;
+  right: 0;
+  width: 24px;
+  height: calc((100% - 24px) / 6);
+  top: calc(12px + 2 * (100% - 24px) / 6);
+  background: var(--lot);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--go);
+}
+.exit svg { width: 14px; height: 22px; animation: nudge 1.4s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: translateX(-2px); opacity: 0.6; } 50% { transform: translateX(2px); opacity: 1; } }
+
+.veh {
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.16s ease-out, opacity 0.5s ease-in;
+  outline: none;
+}
+.veh.dragging { transition: none; cursor: grabbing; z-index: 3; }
+.veh .body {
+  position: absolute;
+  inset: calc(var(--cell) * 0.07);
+  border-radius: calc(var(--cell) * 0.22);
+  background: var(--vc);
+  box-shadow: 0 calc(var(--cell) * 0.04) 0 rgba(0, 0, 0, 0.4), inset 0 calc(var(--cell) * -0.05) 0 rgba(0, 0, 0, 0.18), inset 0 calc(var(--cell) * 0.03) 0 rgba(255, 255, 255, 0.3);
+}
+.veh.sel .body { box-shadow: 0 0 0 3px var(--ring), 0 calc(var(--cell) * 0.04) 0 3px rgba(0, 0, 0, 0.3); }
+.veh.hint .body { animation: pulse 0.9s ease-in-out 3; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 4px var(--accent), 0 0 18px 4px var(--accent); } }
+.veh .glass { position: absolute; background: rgba(14, 20, 26, 0.72); border-radius: calc(var(--cell) * 0.12); }
+.veh .roof { position: absolute; background: var(--vc); filter: brightness(1.08); border-radius: calc(var(--cell) * 0.1); }
+.veh .cargo { display: none; position: absolute; background: rgba(255, 255, 255, 0.22); border-radius: calc(var(--cell) * 0.08); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.12); }
+.veh.truck .cargo { display: block; }
+.veh.truck .roof { display: none; }
+.veh .body::before, .veh .body::after { content: ""; position: absolute; width: calc(var(--cell) * 0.11); height: calc(var(--cell) * 0.11); border-radius: 50%; background: #fff4c4; }
+
+/* horizontal: front is the right end */
+.veh.h .glass { left: calc(var(--cell) * 0.3); right: calc(var(--cell) * 0.16); top: calc(var(--cell) * 0.14); bottom: calc(var(--cell) * 0.14); }
+.veh.h .roof { left: calc(var(--cell) * 0.3); right: calc(var(--cell) * 0.26); top: calc(var(--cell) * 0.05); bottom: calc(var(--cell) * 0.05); }
+.veh.h.truck .glass { left: calc(var(--cell) * (var(--len) - 0.95)); right: calc(var(--cell) * 0.16); }
+.veh.h .cargo { left: calc(var(--cell) * 0.12); right: calc(var(--cell) * 0.98); top: calc(var(--cell) * 0.1); bottom: calc(var(--cell) * 0.1); }
+.veh.h .body::before { right: calc(var(--cell) * 0.03); top: calc(var(--cell) * 0.06); }
+.veh.h .body::after { right: calc(var(--cell) * 0.03); bottom: calc(var(--cell) * 0.06); }
+/* vertical: front is the bottom end */
+.veh.v .glass { top: calc(var(--cell) * 0.3); bottom: calc(var(--cell) * 0.16); left: calc(var(--cell) * 0.14); right: calc(var(--cell) * 0.14); }
+.veh.v .roof { top: calc(var(--cell) * 0.3); bottom: calc(var(--cell) * 0.26); left: calc(var(--cell) * 0.05); right: calc(var(--cell) * 0.05); }
+.veh.v.truck .glass { top: calc(var(--cell) * (var(--len) - 0.95)); bottom: calc(var(--cell) * 0.16); }
+.veh.v .cargo { top: calc(var(--cell) * 0.12); bottom: calc(var(--cell) * 0.98); left: calc(var(--cell) * 0.1); right: calc(var(--cell) * 0.1); }
+.veh.v .body::before { bottom: calc(var(--cell) * 0.03); left: calc(var(--cell) * 0.06); }
+.veh.v .body::after { bottom: calc(var(--cell) * 0.03); right: calc(var(--cell) * 0.06); }
+
+.status { min-height: 48px; margin: 14px 0 0; color: var(--muted); }
+.result { margin-top: 14px; padding: 14px 0 4px; border-top: 1px solid var(--line); }
+.result h2 { margin: 6px 0 2px; font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.1; }
+.result p { margin: 0 0 12px; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.controls { margin-top: 12px; }
+.controls button { flex: 1 1 0; min-width: 0; }
+
+.stars { display: inline-flex; gap: 2px; color: var(--accent); }
+.stars svg { display: block; }
+.stars .off { opacity: 0.3; }
+
+.levels h2 { margin: 0 0 4px; font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: 0.03em; text-transform: uppercase; }
+.tier { margin-top: 18px; }
+.tier h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; }
+.lvl { min-height: 56px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.lvl .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.lvl.done { background: var(--solved); }
+.lvl.cur { outline: 3px solid var(--accent); outline-offset: 1px; }
+.lvl .stars { min-height: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .veh, .exit svg { transition: none; animation: none; }
+  .veh.hint .body { animation: none; box-shadow: 0 0 0 4px var(--accent); }
+}
+</style>
+
+<div class="page">
+  <header>
+    <h1>Rush Hour</h1>
+    <p class="sub">Slide the traffic out of the way and drive the red car through the exit on the right.</p>
+  </header>
+
+  <div class="layout">
+    <main class="game">
+      <div class="puzzle-bar">
+        <div class="puzzle-name" id="puzzleName"></div>
+        <div class="nav">
+          <button class="icon" id="prev" aria-label="Previous puzzle">&#8249;</button>
+          <button class="icon" id="next" aria-label="Next puzzle">&#8250;</button>
+        </div>
+      </div>
+
+      <dl class="hud">
+        <div><dt>Moves</dt><dd id="hudMoves">0</dd></div>
+        <div><dt>Par</dt><dd id="hudPar">0</dd></div>
+        <div><dt>Best</dt><dd id="hudBest">&ndash;</dd></div>
+      </dl>
+
+      <div class="tray">
+        <div class="lot" id="lot"></div>
+        <div class="exit" aria-hidden="true">
+          <svg viewBox="0 0 14 22"><path d="M2 2l9 9-9 9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+
+      <p class="status" id="status" aria-live="polite"></p>
+      <section class="result" id="result" hidden aria-live="polite"></section>
+
+      <div class="row controls">
+        <button id="undo">Undo</button>
+        <button id="reset">Reset</button>
+        <button id="hint">Hint</button>
+      </div>
+    </main>
+
+    <aside class="levels">
+      <h2>Puzzles</h2>
+      <div id="levels"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const PUZZLES = [{"tier":"beginner","par":4,"grid":"......CCBADDXXBA.P..OOOPE....PE....."},{"tier":"beginner","par":4,"grid":"HC..DDHC....XX..GE....GE...AAFBBOOOF"},{"tier":"beginner","par":4,"grid":"DD...E.....EXX...P..OOOP.CC..P..BBAA"},{"tier":"beginner","par":5,"grid":".ABB...AIOOOXXI..C.DDFFC....HH..EEGG"},{"tier":"beginner","par":6,"grid":"DPAAHHDP.OOOIPXX.FI....FE..B.GECCB.G"},{"tier":"beginner","par":6,"grid":".F.CC..FEEDDXXP.BO.AP.BOHAPG.OH..GII"},{"tier":"beginner","par":7,"grid":"D....OD.GHAOXXGHAO.BBECCFF.E...II..."},{"tier":"beginner","par":7,"grid":".CC.BB....O...XXO.EE.PO....PDD...PAA"},{"tier":"beginner","par":7,"grid":".GGEEAD.CBBAD.CXXPQ..O.PQ..O.PQ..OFF"},{"tier":"beginner","par":7,"grid":"QQQ.DDABBEERAXX.HR..GGHRC..PPPCOOOFF"},{"tier":"intermediate","par":8,"grid":".FF.P.BBC.P.XXC.P..O....AO....AODDEE"},{"tier":"intermediate","par":8,"grid":"FF...GPPP.AGEXX.AQE.OOOQBB.C.Q...CDD"},{"tier":"intermediate","par":8,"grid":".E..C..E.HC.AXXHPBAGGDPBFFIDP...IOOO"},{"tier":"intermediate","par":9,"grid":".....O.BBAAO..XXEO....E..CCDFF...D.."},{"tier":"intermediate","par":10,"grid":"DHHPPPD.QOOOXXQ..F..QBBF.ACC.G.AEE.G"},{"tier":"intermediate","par":10,"grid":"FHHPPPFRRRADXX..AD.E.BBC.EOOOCQQQ.GG"},{"tier":"intermediate","par":11,"grid":"..Q..O..QBBOXXQC.O.D.C...D.A..PPPA.."},{"tier":"intermediate","par":12,"grid":"B..OOOBGGQQQ..XXH.FFD.H..ADCCE.APPPE"},{"tier":"intermediate","par":12,"grid":"..JDDKFFJC.KAXXC.GAE.IIGBE....BOOOHH"},{"tier":"intermediate","par":12,"grid":"OCFF.JOC.A.JOXXA.B...GGB..IH..DDIHEE"},{"tier":"advanced","par":13,"grid":"..JDDKFFJC.KAXXC.GAEII.GBE....BOOOHH"},{"tier":"advanced","par":13,"grid":".DFFCC.D...Q.BXX.QRBPPPQR.EOOOR.E.AA"},{"tier":"advanced","par":14,"grid":"...IBBFF.IEOD.XXEOD..GGOCAAQQQCHHPPP"},{"tier":"advanced","par":15,"grid":".O.IFF.O.IDD.OXXCH....CHEEB..AGGB..A"},{"tier":"advanced","par":16,"grid":"GGOOOCD.EERCDXXQR..AAQR...FQBB..FPPP"},{"tier":"advanced","par":18,"grid":"OOO.PRD.FFPRDXX.PRE.CQBBE.CQAA...Q.."},{"tier":"advanced","par":18,"grid":".D..BB.DFFGGXXE.A.HHEJAPICCJ.PIOOO.P"},{"tier":"advanced","par":18,"grid":"OOOJ....FJGGXXF.KD..BBKDCEEAIIC..AHH"},{"tier":"advanced","par":18,"grid":"PPP....A.OOO.AXXE.DDI.E.H.IBGFHCCBGF"},{"tier":"advanced","par":18,"grid":"..A..FBBA.QFXX..Q.POOOQ.P..CDDP..CEE"},{"tier":"expert","par":19,"grid":"E..OOOE..CBBXX.CH..AFFH..ADPPPGGD..."},{"tier":"expert","par":19,"grid":"EEFFICDDAPICXXAP....BPGG..BJJHOOO..H"},{"tier":"expert","par":19,"grid":"AA.G..IE.G..IEXXOJFFHHOJC.D.O.C.D.BB"},{"tier":"expert","par":20,"grid":".HOOOE.HPPPEXXC.D.AAC.D.GIIQQQG.FFBB"},{"tier":"expert","par":21,"grid":"....AFOOO.AFGCXXD.GC..D...E.BB..E..."},{"tier":"expert","par":21,"grid":"PPP..F.AOOOF.AXXE.DDIBE.H.IBG.H.CCG."},{"tier":"expert","par":21,"grid":"OGGCCHO....HO.XXADEEBPAD..BPFF...P.."},{"tier":"expert","par":23,"grid":"DOOOPRD.FFPRXXC.PRE.CQBBEAAQ.....Q.."},{"tier":"expert","par":26,"grid":".ADDFP.AG.FPB.GXXPBHHJCCOOOJ..IIEE.."},{"tier":"expert","par":29,"grid":"OOOJKD.GGJKDXXFA..C.FABBCEEII....HH."}];
+
+// SOLVER-START
+function solvePuzzle(meta, start) {
+  if (start[0] === 4) return [];
+  const key = p => p.join('');
+  const prev = new Map();
+  prev.set(key(start), null);
+  let frontier = [start];
+  const occ = new Int8Array(36);
+  function path(k) {
+    const out = [];
+    while (prev.get(k)) {
+      const e = prev.get(k);
+      out.push({ i: e.i, from: e.fromPos, to: e.to });
+      k = e.from;
+    }
+    return out.reverse();
+  }
+  while (frontier.length) {
+    const next = [];
+    for (const pos of frontier) {
+      occ.fill(-1);
+      for (let i = 0; i < meta.length; i++) {
+        const m = meta[i];
+        for (let k = 0; k < m.len; k++) {
+          const x = m.h ? pos[i] + k : m.fixed;
+          const y = m.h ? m.fixed : pos[i] + k;
+          occ[y * 6 + x] = i;
+        }
+      }
+      const pk = key(pos);
+      for (let i = 0; i < meta.length; i++) {
+        const m = meta[i];
+        for (const d of [-1, 1]) {
+          let p = pos[i] + d;
+          for (;;) {
+            const lead = d < 0 ? p : p + m.len - 1;
+            if (lead < 0 || lead > 5) break;
+            const cidx = m.h ? m.fixed * 6 + lead : lead * 6 + m.fixed;
+            if (occ[cidx] !== -1) break;
+            const np = pos.slice();
+            np[i] = p;
+            const nk = key(np);
+            if (!prev.has(nk)) {
+              prev.set(nk, { from: pk, i, fromPos: pos[i], to: p });
+              if (np[0] === 4) return path(nk);
+              next.push(np);
+            }
+            p += d;
+          }
+        }
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+// SOLVER-END
+
+(function () {
+  const SIZE = 6;
+  const TIERS = [
+    { key: 'beginner', name: 'Beginner' },
+    { key: 'intermediate', name: 'Intermediate' },
+    { key: 'advanced', name: 'Advanced' },
+    { key: 'expert', name: 'Expert' }
+  ];
+  const PALETTE = [
+    ['yellow', '#f2c230'], ['teal', '#1fa99b'], ['blue', '#4a9be0'], ['green', '#5cb860'],
+    ['orange', '#ee8a2c'], ['purple', '#8f6dd6'], ['pink', '#e97fb4'], ['silver', '#b3bcc5'],
+    ['lime', '#b6d43a'], ['navy', '#3f5cae'], ['brown', '#a9744c'], ['white', '#eeeeea']
+  ];
+  const RED = '#e5342d';
+  const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = id => document.getElementById(id);
+  const lot = $('lot'), statusEl = $('status'), resultEl = $('result'), levelsEl = $('levels');
+  const undoBtn = $('undo');
+
+  let store = { best: {}, last: 0 };
+  try {
+    const s = localStorage.getItem('rushhour.v1');
+    if (s) store = Object.assign(store, JSON.parse(s));
+  } catch (e) {}
+  function save() { try { localStorage.setItem('rushhour.v1', JSON.stringify(store)); } catch (e) {} }
+
+  let idx = 0, puzzle = null, veh = [], hist = [], moves = 0, solved = false, selected = -1, cell = 60, drag = null, hintTimer = 0;
+
+  const starSvg = (on, size) =>
+    '<svg class="' + (on ? 'on' : 'off') + '" viewBox="0 0 24 24" width="' + size + '" height="' + size + '" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.2 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  const starsHtml = (n, size) => '<span class="stars">' + [1, 2, 3].map(i => starSvg(i <= n, size)).join('') + '</span>';
+  const starsFor = (m, par) => (m <= par ? 3 : m <= par + 3 ? 2 : 1);
+
+  function parse(str) {
+    const cells = {};
+    for (let i = 0; i < 36; i++) {
+      const ch = str[i];
+      if (ch !== '.') (cells[ch] = cells[ch] || []).push(i);
+    }
+    const ids = Object.keys(cells).sort((a, b) => (a === 'X' ? -1 : b === 'X' ? 1 : a < b ? -1 : 1));
+    let k = 0;
+    return ids.map(id => {
+      const c = cells[id];
+      const h = c.length > 1 && c[1] - c[0] === 1;
+      const x = c[0] % SIZE, y = (c[0] / SIZE) | 0;
+      const red = id === 'X';
+      let name = 'red', color = RED;
+      if (!red) { const p = PALETTE[k % PALETTE.length]; name = p[0]; color = p[1]; k++; }
+      return { id, h, len: c.length, fixed: h ? y : x, pos: h ? x : y, red, name, color, el: null };
+    });
+  }
+
+  const posArr = () => veh.map(v => v.pos);
+  const metaArr = () => veh.map(v => ({ h: v.h, len: v.len, fixed: v.fixed }));
+  const cellIdx = (v, p) => (v.h ? v.fixed * SIZE + p : p * SIZE + v.fixed);
+
+  function occupancy() {
+    const g = new Int8Array(36).fill(-1);
+    veh.forEach((v, i) => {
+      for (let k = 0; k < v.len; k++) g[cellIdx(v, v.pos + k)] = i;
+    });
+    return g;
+  }
+  function rangeOf(i) {
+    const v = veh[i], g = occupancy();
+    let lo = v.pos, hi = v.pos;
+    while (lo - 1 >= 0 && g[cellIdx(v, lo - 1)] === -1) lo--;
+    while (hi + v.len < SIZE && g[cellIdx(v, hi + v.len)] === -1) hi++;
+    return [lo, hi];
+  }
+
+  function place(v, p) {
+    const x = v.h ? p : v.fixed, y = v.h ? v.fixed : p;
+    v.el.style.transform = 'translate(' + x * cell + 'px,' + y * cell + 'px)';
+  }
+  function layout() {
+    cell = lot.clientWidth / SIZE;
+    lot.style.setProperty('--cell', cell + 'px');
+    veh.forEach(v => {
+      v.el.style.width = (v.h ? v.len : 1) * cell + 'px';
+      v.el.style.height = (v.h ? 1 : v.len) * cell + 'px';
+      place(v, v.pos);
+    });
+  }
+
+  function build() {
+    lot.innerHTML = '';
+    veh.forEach((v, i) => {
+      const el = document.createElement('div');
+      el.className = 'veh ' + (v.h ? 'h' : 'v') + (v.len === 3 ? ' truck' : ' car');
+      el.style.setProperty('--vc', v.color);
+      el.style.setProperty('--len', v.len);
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', v.name + (v.len === 3 ? ' truck' : ' car') + ', slides ' + (v.h ? 'left and right' : 'up and down') + '. Use the arrow keys to move it.');
+      el.dataset.i = i;
+      el.innerHTML = '<div class="body"><div class="glass"><div class="roof"></div></div><div class="cargo"></div></div>';
+      lot.appendChild(el);
+      v.el = el;
+    });
+    layout();
+  }
+
+  function select(i) {
+    selected = i;
+    veh.forEach((v, k) => v.el.classList.toggle('sel', k === i));
+  }
+  function clearHint() {
+    clearTimeout(hintTimer);
+    veh.forEach(v => v.el.classList.remove('hint'));
+  }
+  function setStatus(t) { statusEl.textContent = t; }
+
+  function updateHud() {
+    $('hudMoves').textContent = moves;
+    $('hudPar').textContent = puzzle.par;
+    const b = store.best[idx];
+    $('hudBest').innerHTML = b ? b : '&ndash;';
+    const t = TIERS.find(t => t.key === puzzle.tier);
+    $('puzzleName').innerHTML = 'Puzzle ' + (idx + 1) + '<small>' + t.name + '</small>';
+    undoBtn.disabled = solved || hist.length === 0;
+    $('hint').disabled = solved;
+  }
+
+  function renderLevels() {
+    levelsEl.innerHTML = '';
+    TIERS.forEach(t => {
+      const items = PUZZLES.map((p, i) => ({ p, i })).filter(o => o.p.tier === t.key);
+      if (!items.length) return;
+      const pars = items.map(o => o.p.par);
+      const sec = document.createElement('section');
+      sec.className = 'tier';
+      sec.innerHTML = '<h3><span>' + t.name + '</span><span>' + Math.min.apply(null, pars) + '&ndash;' + Math.max.apply(null, pars) + ' moves</span></h3>';
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      items.forEach(o => {
+        const b = store.best[o.i];
+        const n = b ? starsFor(b, o.p.par) : 0;
+        const btn = document.createElement('button');
+        btn.className = 'lvl' + (b ? ' done' : '') + (o.i === idx ? ' cur' : '');
+        btn.setAttribute('aria-label', 'Puzzle ' + (o.i + 1) + ', par ' + o.p.par + (b ? ', ' + n + ' stars' : ''));
+        btn.innerHTML = '<span class="n">' + (o.i + 1) + '</span>' + (b ? starsHtml(n, 10) : '<span class="stars"></span>');
+        btn.addEventListener('click', () => loadPuzzle(o.i));
+        grid.appendChild(btn);
+      });
+      sec.appendChild(grid);
+      levelsEl.appendChild(sec);
+    });
+  }
+
+  function loadPuzzle(i) {
+    idx = ((i % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
+    puzzle = PUZZLES[idx];
+    store.last = idx;
+    save();
+    veh = parse(puzzle.grid);
+    hist = []; moves = 0; solved = false; selected = -1; drag = null;
+    clearTimeout(hintTimer);
+    build();
+    resultEl.hidden = true;
+    statusEl.hidden = false;
+    setStatus('Drag a vehicle along its lane. Arrow keys work too.');
+    updateHud();
+    renderLevels();
+  }
+
+  function commit(i, to) {
+    const v = veh[i], from = v.pos;
+    if (to === from) { place(v, from); return; }
+    clearHint();
+    v.pos = to;
+    place(v, to);
+    const last = hist[hist.length - 1];
+    if (last && last.v === i) {
+      if (to === last.from) { hist.pop(); moves--; } else { last.to = to; }
+    } else {
+      hist.push({ v: i, from, to });
+      moves++;
+    }
+    setStatus('');
+    updateHud();
+    if (veh[0].pos === 4) win();
+  }
+
+  function win() {
+    solved = true;
+    select(-1);
+    updateHud();
+    const prevBest = store.best[idx];
+    if (!prevBest || moves < prevBest) store.best[idx] = moves;
+    save();
+    const n = starsFor(moves, puzzle.par);
+    const red = veh[0];
+    const finish = () => {
+      statusEl.hidden = true;
+      resultEl.hidden = false;
+      resultEl.innerHTML =
+        starsHtml(n, 26) +
+        '<h2>Cleared in ' + moves + (moves === 1 ? ' move' : ' moves') + '</h2>' +
+        '<p>' + (moves <= puzzle.par ? 'That matches the shortest solution.' : 'The shortest solution takes ' + puzzle.par + '.') + '</p>' +
+        '<div class="row"><button class="primary" id="goNext">Next puzzle</button><button id="replay">Replay</button></div>';
+      $('goNext').addEventListener('click', () => loadPuzzle(idx + 1));
+      $('replay').addEventListener('click', () => loadPuzzle(idx));
+      updateHud();
+      renderLevels();
+    };
+    if (reduceMotion) { finish(); return; }
+    red.el.style.transition = 'transform 0.7s cubic-bezier(.5,0,.9,.6), opacity 0.7s ease-in';
+    red.el.style.opacity = '0';
+    red.el.style.transform = 'translate(' + 6.4 * cell + 'px,' + red.fixed * cell + 'px)';
+    setTimeout(finish, 750);
+  }
+
+  function undo() {
+    if (solved || !hist.length) return;
+    const e = hist.pop();
+    veh[e.v].pos = e.from;
+    place(veh[e.v], e.from);
+    moves--;
+    clearHint();
+    setStatus('');
+    updateHud();
+  }
+
+  function hint() {
+    if (solved) return;
+    const sol = solvePuzzle(metaArr(), posArr());
+    if (!sol || !sol.length) return;
+    const m = sol[0], v = veh[m.i];
+    const dist = Math.abs(m.to - m.from);
+    const dir = v.h ? (m.to > m.from ? 'right' : 'left') : (m.to > m.from ? 'down' : 'up');
+    clearHint();
+    select(m.i);
+    v.el.classList.add('hint');
+    hintTimer = setTimeout(clearHint, 3000);
+    setStatus('Slide the ' + v.name + (v.len === 3 ? ' truck ' : ' car ') + dist + (dist === 1 ? ' space ' : ' spaces ') + dir + '. Shortest finish from here: ' + sol.length + (sol.length === 1 ? ' move.' : ' moves.'));
+  }
+
+  /* pointer dragging */
+  lot.addEventListener('pointerdown', e => {
+    const el = e.target.closest('.veh');
+    if (!el || solved) return;
+    const i = +el.dataset.i, v = veh[i];
+    select(i);
+    const r = rangeOf(i);
+    drag = { i, x: e.clientX, y: e.clientY, start: v.pos, lo: r[0], hi: r[1], cur: v.pos, id: e.pointerId };
+    el.classList.add('dragging');
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    e.preventDefault();
+  });
+  lot.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const v = veh[drag.i];
+    const d = (v.h ? e.clientX - drag.x : e.clientY - drag.y) / cell;
+    drag.cur = Math.max(drag.lo, Math.min(drag.hi, drag.start + d));
+    place(v, drag.cur);
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    veh[d.i].el.classList.remove('dragging');
+    commit(d.i, Math.round(d.cur));
+  }
+  lot.addEventListener('pointerup', endDrag);
+  lot.addEventListener('pointercancel', endDrag);
+
+  /* keyboard */
+  lot.addEventListener('keydown', e => {
+    const el = e.target.closest('.veh');
+    if (!el || solved) return;
+    const i = +el.dataset.i, v = veh[i];
+    if (e.key === 'Escape') { select(-1); return; }
+    const keys = v.h ? { ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1 };
+    const d = keys[e.key];
+    if (!d) return;
+    e.preventDefault();
+    select(i);
+    const r = rangeOf(i);
+    const to = v.pos + d;
+    if (to >= r[0] && to <= r[1]) commit(i, to);
+  });
+  lot.addEventListener('focusin', e => {
+    const el = e.target.closest('.veh');
+    if (el && !solved) select(+el.dataset.i);
+  });
+
+  undoBtn.addEventListener('click', undo);
+  $('reset').addEventListener('click', () => loadPuzzle(idx));
+  $('hint').addEventListener('click', hint);
+  $('prev').addEventListener('click', () => loadPuzzle(idx - 1));
+  $('next').addEventListener('click', () => loadPuzzle(idx + 1));
+
+  if (window.ResizeObserver) new ResizeObserver(() => { if (veh.length && !drag && !solved) layout(); }).observe(lot);
+  else window.addEventListener('resize', () => { if (veh.length && !drag && !solved) layout(); });
+
+  const first = Number.isInteger(store.last) && store.last >= 0 && store.last < PUZZLES.length ? store.last : 0;
+  loadPuzzle(first);
+})();
+</script>
