@@ -1,0 +1,16 @@
+# Android build output and local-only files
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/keystore.properties
+android/app/src/main/assets/index.html
+*.jks
+*.keystore
+
+# Built APKs go to GitHub Releases, not the repo
+dist/
+
+# Python / editor
+__pycache__/
+*.pyc

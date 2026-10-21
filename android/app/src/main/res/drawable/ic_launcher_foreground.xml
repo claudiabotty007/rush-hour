@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Red car seen from above, facing right. Everything sits inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- shadow -->
+    <path android:fillColor="#66000000"
+        android:pathData="M36,43H72Q80,43 80,51V63Q80,71 72,71H36Q28,71 28,63V51Q28,43 36,43Z" />
+    <!-- body -->
+    <path android:fillColor="#E5342D"
+        android:pathData="M36,40H72Q80,40 80,48V60Q80,68 72,68H36Q28,68 28,60V48Q28,40 36,40Z" />
+    <!-- glass -->
+    <path android:fillColor="#0E141A"
+        android:pathData="M48,44H66Q70,44 70,48V60Q70,64 66,64H48Q44,64 44,60V48Q44,44 48,44Z" />
+    <!-- roof -->
+    <path android:fillColor="#EE5A52"
+        android:pathData="M52,47H62Q64,47 64,49V59Q64,61 62,61H52Q50,61 50,59V49Q50,47 52,47Z" />
+    <!-- headlights -->
+    <path android:fillColor="#FFF4C4" android:pathData="M76,42h3v5h-3z" />
+    <path android:fillColor="#FFF4C4" android:pathData="M76,61h3v5h-3z" />
+</vector>

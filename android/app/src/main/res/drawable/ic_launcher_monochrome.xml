@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour silhouette for themed icons (Android 13+): body with the glass cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M36,40H72Q80,40 80,48V60Q80,68 72,68H36Q28,68 28,60V48Q28,40 36,40Z
+                          M48,44H66Q70,44 70,48V60Q70,64 66,64H48Q44,64 44,60V48Q44,44 48,44Z" />
+</vector>
