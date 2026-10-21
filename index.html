@@ -17,6 +17,8 @@
   --lot: #2a3138;
   --lot-line: rgba(255, 255, 255, 0.08);
   --ring: #ffffff;
+  --n: 8;
+  --exit-row: 3;
   --solved: #d7e6dc;
   --red: #e5342d;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
@@ -131,7 +133,7 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
   background-image:
     linear-gradient(var(--lot-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--lot-line) 1px, transparent 1px);
-  background-size: calc(100% / 6) calc(100% / 6);
+  background-size: calc(100% / var(--n)) calc(100% / var(--n));
   border-radius: 6px;
   touch-action: none;
   user-select: none;
@@ -141,8 +143,8 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
   position: absolute;
   right: 0;
   width: 24px;
-  height: calc((100% - 24px) / 6);
-  top: calc(12px + 2 * (100% - 24px) / 6);
+  height: calc((100% - 24px) / var(--n));
+  top: calc(12px + var(--exit-row) * (100% - 24px) / var(--n));
   background: var(--lot);
   display: flex;
   align-items: center;
@@ -269,16 +271,18 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
 </div>
 
 <script>
-const PUZZLES = [{"tier":"beginner","par":4,"grid":"......CCBADDXXBA.P..OOOPE....PE....."},{"tier":"beginner","par":4,"grid":"HC..DDHC....XX..GE....GE...AAFBBOOOF"},{"tier":"beginner","par":4,"grid":"DD...E.....EXX...P..OOOP.CC..P..BBAA"},{"tier":"beginner","par":5,"grid":".ABB...AIOOOXXI..C.DDFFC....HH..EEGG"},{"tier":"beginner","par":6,"grid":"DPAAHHDP.OOOIPXX.FI....FE..B.GECCB.G"},{"tier":"beginner","par":6,"grid":".F.CC..FEEDDXXP.BO.AP.BOHAPG.OH..GII"},{"tier":"beginner","par":7,"grid":"D....OD.GHAOXXGHAO.BBECCFF.E...II..."},{"tier":"beginner","par":7,"grid":".CC.BB....O...XXO.EE.PO....PDD...PAA"},{"tier":"beginner","par":7,"grid":".GGEEAD.CBBAD.CXXPQ..O.PQ..O.PQ..OFF"},{"tier":"beginner","par":7,"grid":"QQQ.DDABBEERAXX.HR..GGHRC..PPPCOOOFF"},{"tier":"intermediate","par":8,"grid":".FF.P.BBC.P.XXC.P..O....AO....AODDEE"},{"tier":"intermediate","par":8,"grid":"FF...GPPP.AGEXX.AQE.OOOQBB.C.Q...CDD"},{"tier":"intermediate","par":8,"grid":".E..C..E.HC.AXXHPBAGGDPBFFIDP...IOOO"},{"tier":"intermediate","par":9,"grid":".....O.BBAAO..XXEO....E..CCDFF...D.."},{"tier":"intermediate","par":10,"grid":"DHHPPPD.QOOOXXQ..F..QBBF.ACC.G.AEE.G"},{"tier":"intermediate","par":10,"grid":"FHHPPPFRRRADXX..AD.E.BBC.EOOOCQQQ.GG"},{"tier":"intermediate","par":11,"grid":"..Q..O..QBBOXXQC.O.D.C...D.A..PPPA.."},{"tier":"intermediate","par":12,"grid":"B..OOOBGGQQQ..XXH.FFD.H..ADCCE.APPPE"},{"tier":"intermediate","par":12,"grid":"..JDDKFFJC.KAXXC.GAE.IIGBE....BOOOHH"},{"tier":"intermediate","par":12,"grid":"OCFF.JOC.A.JOXXA.B...GGB..IH..DDIHEE"},{"tier":"advanced","par":13,"grid":"..JDDKFFJC.KAXXC.GAEII.GBE....BOOOHH"},{"tier":"advanced","par":13,"grid":".DFFCC.D...Q.BXX.QRBPPPQR.EOOOR.E.AA"},{"tier":"advanced","par":14,"grid":"...IBBFF.IEOD.XXEOD..GGOCAAQQQCHHPPP"},{"tier":"advanced","par":15,"grid":".O.IFF.O.IDD.OXXCH....CHEEB..AGGB..A"},{"tier":"advanced","par":16,"grid":"GGOOOCD.EERCDXXQR..AAQR...FQBB..FPPP"},{"tier":"advanced","par":18,"grid":"OOO.PRD.FFPRDXX.PRE.CQBBE.CQAA...Q.."},{"tier":"advanced","par":18,"grid":".D..BB.DFFGGXXE.A.HHEJAPICCJ.PIOOO.P"},{"tier":"advanced","par":18,"grid":"OOOJ....FJGGXXF.KD..BBKDCEEAIIC..AHH"},{"tier":"advanced","par":18,"grid":"PPP....A.OOO.AXXE.DDI.E.H.IBGFHCCBGF"},{"tier":"advanced","par":18,"grid":"..A..FBBA.QFXX..Q.POOOQ.P..CDDP..CEE"},{"tier":"expert","par":19,"grid":"E..OOOE..CBBXX.CH..AFFH..ADPPPGGD..."},{"tier":"expert","par":19,"grid":"EEFFICDDAPICXXAP....BPGG..BJJHOOO..H"},{"tier":"expert","par":19,"grid":"AA.G..IE.G..IEXXOJFFHHOJC.D.O.C.D.BB"},{"tier":"expert","par":20,"grid":".HOOOE.HPPPEXXC.D.AAC.D.GIIQQQG.FFBB"},{"tier":"expert","par":21,"grid":"....AFOOO.AFGCXXD.GC..D...E.BB..E..."},{"tier":"expert","par":21,"grid":"PPP..F.AOOOF.AXXE.DDIBE.H.IBG.H.CCG."},{"tier":"expert","par":21,"grid":"OGGCCHO....HO.XXADEEBPAD..BPFF...P.."},{"tier":"expert","par":23,"grid":"DOOOPRD.FFPRXXC.PRE.CQBBEAAQ.....Q.."},{"tier":"expert","par":26,"grid":".ADDFP.AG.FPB.GXXPBHHJCCOOOJ..IIEE.."},{"tier":"expert","par":29,"grid":"OOOJKD.GGJKDXXFA..C.FABBCEEII....HH."}];
+const SIZE = 8;
+const PUZZLES = [{"tier":"beginner","par":5,"grid":".AADD.E.PPC...EQJJCLLLEQXXC.N..KHIIINOOKHG.R...K.G.RFBB.....FMMM"},{"tier":"beginner","par":5,"grid":"LLO.MN..F.OAMNP.F.IAMQPSF.IXXQPSKK.EEEJJRRTT..HHBBBD.CCC.GGD...."},{"tier":"beginner","par":6,"grid":".H.MN....H.MNPP..HEEEDDD.XXKF..L...KFOOL..IIICQB...G.CQB.JJGAAA."},{"tier":"beginner","par":6,"grid":"...H.L.KPPGHEL.KSSGHE..K..G.EXXFJ....NNFJDDAACCCQQBOM.RR..BOMIII"},{"tier":"beginner","par":7,"grid":".IIFFGDDAAJJJGOPQNNMM.OPQ..XX.OPCCCBBBKKS.H.RR..STH...EL.T....EL"},{"tier":"beginner","par":7,"grid":"CCLAOOMM..LAEEE..RLAKDDJ.RXXK..JGGIIFFHH.QNN..BB.QPPPS.......S.."},{"tier":"beginner","par":8,"grid":".NAJ.GQQ.NAJ.G..BBBCCCFFXXKHME.I..KHME.IO..HM.DDOP.......P...LL."},{"tier":"beginner","par":8,"grid":"OO.CH..N.G.CHEEN.G.BH.JF.MLBXXJF.MLIIKKF.MLA.SPPDD.AQS...RRAQ..."},{"tier":"beginner","par":9,"grid":"...M.......MIIE.GG.MFNE.XX..FNE..LLKKBB.CCC.DAAAH..ODJP.H..ODJP."},{"tier":"beginner","par":9,"grid":"...N.AF...GN.AF.JJGOOL...XXD.L..CCKD.EEE.HKD.....HK..MB..H.IIMB."},{"tier":"intermediate","par":10,"grid":"AA....DDPPC...E.JJCLLLEQXXC.N.EQIII.N.OO....F..KHG.RFBBKHG.RMMMK"},{"tier":"intermediate","par":10,"grid":"P..EKHHLP.MEK..LQQM.KGGGXX..O....R.IOSSF.R.ICCCFDDNNATTF.BB.AJJJ"},{"tier":"intermediate","par":11,"grid":"LLKNNN....K.F...EEGGF.PPXX..M..OA..RMQQOACCRIIJJ...RD..H.BBBD..H"},{"tier":"intermediate","par":11,"grid":".NBSS....NBRRR.KGGDDDQQKXXME..CLFFME..CL.H.OO.PP.HAAAJII.HTTTJ.."},{"tier":"intermediate","par":12,"grid":"BB.HEM..QQ.HEM.LK..HENNLKR.XX.IL.ROOSSIFDDAACCCF...P....GGGP.JJJ"},{"tier":"intermediate","par":13,"grid":"NNS.H...MLS.HKKKML..B..GFL..BXXGFDD.B..IORAACQQIORP.CJTTEEP..J.."},{"tier":"intermediate","par":14,"grid":"K...C.TTKMM.C..JK.FPPQQJXXF....NHHDDEEENLL.III.NOSSA.B..ORRA.BGG"},{"tier":"intermediate","par":14,"grid":".IP...TD.IPRR.TDGICH..SDG.CHXXSQKBBE.LLQKFFEAAAMK.OE.J.M..O..JNN"},{"tier":"intermediate","par":15,"grid":".FHGGJAA.FH..J.TOOHPP.MT.DXXI.MS.DCCI..SRKEQILLLRKEQ..NBR.EQ..NB"},{"tier":"intermediate","par":16,"grid":".....AF.OO...AF...GN.JJ.XXGN.LH.CCEEELH...KD.M....KD.MB...KDIIB."},{"tier":"advanced","par":18,"grid":".HAA.DDP.HC...EP..CLLLEKXXC.N.EKIIIQNOOKSG.QJJTTSGRRF.BBMMM.F..."},{"tier":"advanced","par":18,"grid":"BB.NNLLI.AADDD.ICCQQJ..GXXK.J..GFFK.HHEEMMKPPPRS..O.T.RS..O.T.R."},{"tier":"advanced","par":19,"grid":".HCAA.BB.HCMF.....OMFNNN..OGXXKPDDDG..KPRQQJEEELR..J.I.L...J.I.L"},{"tier":"advanced","par":20,"grid":"..Q..NNN..QFF..LRRJTG.ILXXJTG.IPSSBBBCCPK...AHOOKDDDAHEMK...A.EM"},{"tier":"advanced","par":20,"grid":"SS..........RRR.GGDDDQQKXXBE.JCKFFBE.JCL.HMOOPPL.HMAAAII.HTTTNN."},{"tier":"advanced","par":21,"grid":"....RDDDKKPPR..JCCOOBBBJXXMFH.G...MFHIGNAAAFSI.NQQE.SILL..E....."},{"tier":"advanced","par":22,"grid":"...SO...TTTSO.CCIIEDDDLL..E..XXQMMENNNRQJJJG..RAPH.GF.BAPHKKF.BA"},{"tier":"advanced","par":23,"grid":"FFGGIJAA..H.IJ.TOOHQIPPTXXHQ..MSRDEQCCMSRDE.LLLBRKE...NB.K....N."},{"tier":"advanced","par":25,"grid":"..CLKEPP..CLKE..FFFIME..NXXIM...NHHJJGAA.DD..GQ.BBBOOGQ.......Q."},{"tier":"advanced","par":26,"grid":"..G...F..HGNOOF..H.N.AJJ.H.XXAB.CCEEELB...KD.L....KD.M....KD.MII"},{"tier":"expert","par":30,"grid":"...MN..LPP.MN..L.EEEFDDD.XXKFC..OO.K.C...H.GIIIB.H.G...B.HJJ.AAA"},{"tier":"expert","par":30,"grid":"POOTTSSSP...CC..IIDDDLLQ..EXX.RQMMENNNRA..EJJJBA.H..F.BA.HGGF.KK"},{"tier":"expert","par":31,"grid":"..GHE.....GHE.PPSSGHEL.K..XXML.KJ.NNM..KJDDAACCCQQBORR.F..BOIIIF"},{"tier":"expert","par":32,"grid":"..O.MLL.F.O.MNP.FSI.MNPAFSIXXQPAKKEEEQJJRR.TTHH.BBB.DCCCGG..D..."},{"tier":"expert","par":33,"grid":"J..HE..KJ.GHEPPKSSGHEL.KXXG..L...NN.....DDAAMCCCQQBOMRRF..BOIIIF"},{"tier":"expert","par":34,"grid":".FHGGJAA.FHS.J.TOOHSPPNTXX.QM.N.RD.QMCC.RDEQILLLRKE.I..B.KE.I..B"},{"tier":"expert","par":36,"grid":"FFGGMAAT..H.MJNTOOHPPJNBRDHSIXXBRD.SICC..KEQILLL.KEQ......EQ...."},{"tier":"expert","par":38,"grid":"FFGG.AAT..H..JMTOOHPPJM..DHXX.NSRDCC..NSR.EQILLLRKEQI..B.KEQI..B"},{"tier":"expert","par":41,"grid":"FFGGAA....H..JMTOOHPPJMT..H.XXNSRDECC.NSRDEQILLLRKEQI..B.K.QI..B"},{"tier":"expert","par":45,"grid":"FFGGAAMS.....JMSOOHPPJNR..HXX.NR.DHQI.CC.DEQILLL.KEQI..B.KE....B"}];
 
 // SOLVER-START
-function solvePuzzle(meta, start) {
-  if (start[0] === 4) return [];
+function solvePuzzle(meta, start, size) {
+  const goal = size - 2;
+  if (start[0] === goal) return [];
   const key = p => p.join('');
   const prev = new Map();
   prev.set(key(start), null);
   let frontier = [start];
-  const occ = new Int8Array(36);
+  const occ = new Int8Array(size * size);
   function path(k) {
     const out = [];
     while (prev.get(k)) {
@@ -297,7 +301,7 @@ function solvePuzzle(meta, start) {
         for (let k = 0; k < m.len; k++) {
           const x = m.h ? pos[i] + k : m.fixed;
           const y = m.h ? m.fixed : pos[i] + k;
-          occ[y * 6 + x] = i;
+          occ[y * size + x] = i;
         }
       }
       const pk = key(pos);
@@ -307,15 +311,15 @@ function solvePuzzle(meta, start) {
           let p = pos[i] + d;
           for (;;) {
             const lead = d < 0 ? p : p + m.len - 1;
-            if (lead < 0 || lead > 5) break;
-            const cidx = m.h ? m.fixed * 6 + lead : lead * 6 + m.fixed;
+            if (lead < 0 || lead > size - 1) break;
+            const cidx = m.h ? m.fixed * size + lead : lead * size + m.fixed;
             if (occ[cidx] !== -1) break;
             const np = pos.slice();
             np[i] = p;
             const nk = key(np);
             if (!prev.has(nk)) {
               prev.set(nk, { from: pk, i, fromPos: pos[i], to: p });
-              if (np[0] === 4) return path(nk);
+              if (np[0] === goal) return path(nk);
               next.push(np);
             }
             p += d;
@@ -330,7 +334,6 @@ function solvePuzzle(meta, start) {
 // SOLVER-END
 
 (function () {
-  const SIZE = 6;
   const TIERS = [
     { key: 'beginner', name: 'Beginner' },
     { key: 'intermediate', name: 'Intermediate' },
@@ -340,7 +343,8 @@ function solvePuzzle(meta, start) {
   const PALETTE = [
     ['yellow', '#f2c230'], ['teal', '#1fa99b'], ['blue', '#4a9be0'], ['green', '#5cb860'],
     ['orange', '#ee8a2c'], ['purple', '#8f6dd6'], ['pink', '#e97fb4'], ['silver', '#b3bcc5'],
-    ['lime', '#b6d43a'], ['navy', '#3f5cae'], ['brown', '#a9744c'], ['white', '#eeeeea']
+    ['lime', '#b6d43a'], ['navy', '#3f5cae'], ['brown', '#a9744c'], ['white', '#eeeeea'],
+    ['cyan', '#2fc4e0'], ['magenta', '#c24fc0'], ['mint', '#86dcb4'], ['sand', '#d8b98a']
   ];
   const RED = '#e5342d';
   const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -349,12 +353,13 @@ function solvePuzzle(meta, start) {
   const lot = $('lot'), statusEl = $('status'), resultEl = $('result'), levelsEl = $('levels');
   const undoBtn = $('undo');
 
+  const SAVE_KEY = SIZE === 6 ? 'rushhour.v1' : 'rushhour.' + SIZE;
   let store = { best: {}, last: 0 };
   try {
-    const s = localStorage.getItem('rushhour.v1');
+    const s = localStorage.getItem(SAVE_KEY);
     if (s) store = Object.assign(store, JSON.parse(s));
   } catch (e) {}
-  function save() { try { localStorage.setItem('rushhour.v1', JSON.stringify(store)); } catch (e) {} }
+  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) {} }
 
   let idx = 0, puzzle = null, veh = [], hist = [], moves = 0, solved = false, selected = -1, cell = 60, drag = null, hintTimer = 0;
 
@@ -365,21 +370,39 @@ function solvePuzzle(meta, start) {
 
   function parse(str) {
     const cells = {};
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < SIZE * SIZE; i++) {
       const ch = str[i];
       if (ch !== '.') (cells[ch] = cells[ch] || []).push(i);
     }
     const ids = Object.keys(cells).sort((a, b) => (a === 'X' ? -1 : b === 'X' ? 1 : a < b ? -1 : 1));
-    let k = 0;
-    return ids.map(id => {
+    const list = ids.map(id => {
       const c = cells[id];
       const h = c.length > 1 && c[1] - c[0] === 1;
       const x = c[0] % SIZE, y = (c[0] / SIZE) | 0;
-      const red = id === 'X';
-      let name = 'red', color = RED;
-      if (!red) { const p = PALETTE[k % PALETTE.length]; name = p[0]; color = p[1]; k++; }
-      return { id, h, len: c.length, fixed: h ? y : x, pos: h ? x : y, red, name, color, el: null };
+      return { id, h, len: c.length, fixed: h ? y : x, pos: h ? x : y, red: id === 'X', cells: c, name: 'red', color: RED, el: null };
     });
+    // give touching vehicles different colours, and spread the palette evenly
+    const owner = {};
+    list.forEach(v => v.cells.forEach(c => { owner[c] = v; }));
+    const used = PALETTE.map(() => 0);
+    list.forEach(v => {
+      if (v.red) return;
+      const taken = new Set();
+      v.cells.forEach(c => {
+        const x = c % SIZE;
+        [x > 0 ? c - 1 : -1, x < SIZE - 1 ? c + 1 : -1, c - SIZE, c + SIZE].forEach(n => {
+          const o = owner[n];
+          if (o && o !== v && o.pi !== undefined) taken.add(o.pi);
+        });
+      });
+      let best = -1;
+      PALETTE.forEach((p, k) => { if (!taken.has(k) && (best < 0 || used[k] < used[best])) best = k; });
+      v.pi = best;
+      used[best]++;
+      v.name = PALETTE[best][0];
+      v.color = PALETTE[best][1];
+    });
+    return list;
   }
 
   const posArr = () => veh.map(v => v.pos);
@@ -387,7 +410,7 @@ function solvePuzzle(meta, start) {
   const cellIdx = (v, p) => (v.h ? v.fixed * SIZE + p : p * SIZE + v.fixed);
 
   function occupancy() {
-    const g = new Int8Array(36).fill(-1);
+    const g = new Int8Array(SIZE * SIZE).fill(-1);
     veh.forEach((v, i) => {
       for (let k = 0; k < v.len; k++) g[cellIdx(v, v.pos + k)] = i;
     });
@@ -511,7 +534,7 @@ function solvePuzzle(meta, start) {
     }
     setStatus('');
     updateHud();
-    if (veh[0].pos === 4) win();
+    if (veh[0].pos === SIZE - 2) win();
   }
 
   function win() {
@@ -539,7 +562,7 @@ function solvePuzzle(meta, start) {
     if (reduceMotion) { finish(); return; }
     red.el.style.transition = 'transform 0.7s cubic-bezier(.5,0,.9,.6), opacity 0.7s ease-in';
     red.el.style.opacity = '0';
-    red.el.style.transform = 'translate(' + 6.4 * cell + 'px,' + red.fixed * cell + 'px)';
+    red.el.style.transform = 'translate(' + (SIZE + 0.4) * cell + 'px,' + red.fixed * cell + 'px)';
     setTimeout(finish, 750);
   }
 
@@ -556,7 +579,12 @@ function solvePuzzle(meta, start) {
 
   function hint() {
     if (solved) return;
-    const sol = solvePuzzle(metaArr(), posArr());
+    setStatus('Working out a hint...');
+    setTimeout(runHint, 30);
+  }
+  function runHint() {
+    if (solved) return;
+    const sol = solvePuzzle(metaArr(), posArr(), SIZE);
     if (!sol || !sol.length) return;
     const m = sol[0], v = veh[m.i];
     const dist = Math.abs(m.to - m.from);

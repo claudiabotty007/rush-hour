@@ -17,6 +17,8 @@
   --lot: #2a3138;
   --lot-line: rgba(255, 255, 255, 0.08);
   --ring: #ffffff;
+  --n: __SIZE__;
+  --exit-row: __EXIT_ROW__;
   --solved: #d7e6dc;
   --red: #e5342d;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
@@ -131,7 +133,7 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
   background-image:
     linear-gradient(var(--lot-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--lot-line) 1px, transparent 1px);
-  background-size: calc(100% / 6) calc(100% / 6);
+  background-size: calc(100% / var(--n)) calc(100% / var(--n));
   border-radius: 6px;
   touch-action: none;
   user-select: none;
@@ -141,8 +143,8 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
   position: absolute;
   right: 0;
   width: 24px;
-  height: calc((100% - 24px) / 6);
-  top: calc(12px + 2 * (100% - 24px) / 6);
+  height: calc((100% - 24px) / var(--n));
+  top: calc(12px + var(--exit-row) * (100% - 24px) / var(--n));
   background: var(--lot);
   display: flex;
   align-items: center;
@@ -269,16 +271,18 @@ button.icon { width: 44px; padding: 0; font-size: 20px; line-height: 1; }
 </div>
 
 <script>
+const SIZE = __SIZE__;
 const PUZZLES = __PUZZLES__;
 
 // SOLVER-START
-function solvePuzzle(meta, start) {
-  if (start[0] === 4) return [];
+function solvePuzzle(meta, start, size) {
+  const goal = size - 2;
+  if (start[0] === goal) return [];
   const key = p => p.join('');
   const prev = new Map();
   prev.set(key(start), null);
   let frontier = [start];
-  const occ = new Int8Array(36);
+  const occ = new Int8Array(size * size);
   function path(k) {
     const out = [];
     while (prev.get(k)) {
@@ -297,7 +301,7 @@ function solvePuzzle(meta, start) {
         for (let k = 0; k < m.len; k++) {
           const x = m.h ? pos[i] + k : m.fixed;
           const y = m.h ? m.fixed : pos[i] + k;
-          occ[y * 6 + x] = i;
+          occ[y * size + x] = i;
         }
       }
       const pk = key(pos);
@@ -307,15 +311,15 @@ function solvePuzzle(meta, start) {
           let p = pos[i] + d;
           for (;;) {
             const lead = d < 0 ? p : p + m.len - 1;
-            if (lead < 0 || lead > 5) break;
-            const cidx = m.h ? m.fixed * 6 + lead : lead * 6 + m.fixed;
+            if (lead < 0 || lead > size - 1) break;
+            const cidx = m.h ? m.fixed * size + lead : lead * size + m.fixed;
             if (occ[cidx] !== -1) break;
             const np = pos.slice();
             np[i] = p;
             const nk = key(np);
             if (!prev.has(nk)) {
               prev.set(nk, { from: pk, i, fromPos: pos[i], to: p });
-              if (np[0] === 4) return path(nk);
+              if (np[0] === goal) return path(nk);
               next.push(np);
             }
             p += d;
@@ -330,7 +334,6 @@ function solvePuzzle(meta, start) {
 // SOLVER-END
 
 (function () {
-  const SIZE = 6;
   const TIERS = [
     { key: 'beginner', name: 'Beginner' },
     { key: 'intermediate', name: 'Intermediate' },
@@ -340,7 +343,8 @@ function solvePuzzle(meta, start) {
   const PALETTE = [
     ['yellow', '#f2c230'], ['teal', '#1fa99b'], ['blue', '#4a9be0'], ['green', '#5cb860'],
     ['orange', '#ee8a2c'], ['purple', '#8f6dd6'], ['pink', '#e97fb4'], ['silver', '#b3bcc5'],
-    ['lime', '#b6d43a'], ['navy', '#3f5cae'], ['brown', '#a9744c'], ['white', '#eeeeea']
+    ['lime', '#b6d43a'], ['navy', '#3f5cae'], ['brown', '#a9744c'], ['white', '#eeeeea'],
+    ['cyan', '#2fc4e0'], ['magenta', '#c24fc0'], ['mint', '#86dcb4'], ['sand', '#d8b98a']
   ];
   const RED = '#e5342d';
   const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -349,12 +353,13 @@ function solvePuzzle(meta, start) {
   const lot = $('lot'), statusEl = $('status'), resultEl = $('result'), levelsEl = $('levels');
   const undoBtn = $('undo');
 
+  const SAVE_KEY = SIZE === 6 ? 'rushhour.v1' : 'rushhour.' + SIZE;
   let store = { best: {}, last: 0 };
   try {
-    const s = localStorage.getItem('rushhour.v1');
+    const s = localStorage.getItem(SAVE_KEY);
     if (s) store = Object.assign(store, JSON.parse(s));
   } catch (e) {}
-  function save() { try { localStorage.setItem('rushhour.v1', JSON.stringify(store)); } catch (e) {} }
+  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) {} }
 
   let idx = 0, puzzle = null, veh = [], hist = [], moves = 0, solved = false, selected = -1, cell = 60, drag = null, hintTimer = 0;
 
@@ -365,21 +370,39 @@ function solvePuzzle(meta, start) {
 
   function parse(str) {
     const cells = {};
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < SIZE * SIZE; i++) {
       const ch = str[i];
       if (ch !== '.') (cells[ch] = cells[ch] || []).push(i);
     }
     const ids = Object.keys(cells).sort((a, b) => (a === 'X' ? -1 : b === 'X' ? 1 : a < b ? -1 : 1));
-    let k = 0;
-    return ids.map(id => {
+    const list = ids.map(id => {
       const c = cells[id];
       const h = c.length > 1 && c[1] - c[0] === 1;
       const x = c[0] % SIZE, y = (c[0] / SIZE) | 0;
-      const red = id === 'X';
-      let name = 'red', color = RED;
-      if (!red) { const p = PALETTE[k % PALETTE.length]; name = p[0]; color = p[1]; k++; }
-      return { id, h, len: c.length, fixed: h ? y : x, pos: h ? x : y, red, name, color, el: null };
+      return { id, h, len: c.length, fixed: h ? y : x, pos: h ? x : y, red: id === 'X', cells: c, name: 'red', color: RED, el: null };
     });
+    // give touching vehicles different colours, and spread the palette evenly
+    const owner = {};
+    list.forEach(v => v.cells.forEach(c => { owner[c] = v; }));
+    const used = PALETTE.map(() => 0);
+    list.forEach(v => {
+      if (v.red) return;
+      const taken = new Set();
+      v.cells.forEach(c => {
+        const x = c % SIZE;
+        [x > 0 ? c - 1 : -1, x < SIZE - 1 ? c + 1 : -1, c - SIZE, c + SIZE].forEach(n => {
+          const o = owner[n];
+          if (o && o !== v && o.pi !== undefined) taken.add(o.pi);
+        });
+      });
+      let best = -1;
+      PALETTE.forEach((p, k) => { if (!taken.has(k) && (best < 0 || used[k] < used[best])) best = k; });
+      v.pi = best;
+      used[best]++;
+      v.name = PALETTE[best][0];
+      v.color = PALETTE[best][1];
+    });
+    return list;
   }
 
   const posArr = () => veh.map(v => v.pos);
@@ -387,7 +410,7 @@ function solvePuzzle(meta, start) {
   const cellIdx = (v, p) => (v.h ? v.fixed * SIZE + p : p * SIZE + v.fixed);
 
   function occupancy() {
-    const g = new Int8Array(36).fill(-1);
+    const g = new Int8Array(SIZE * SIZE).fill(-1);
     veh.forEach((v, i) => {
       for (let k = 0; k < v.len; k++) g[cellIdx(v, v.pos + k)] = i;
     });
@@ -511,7 +534,7 @@ function solvePuzzle(meta, start) {
     }
     setStatus('');
     updateHud();
-    if (veh[0].pos === 4) win();
+    if (veh[0].pos === SIZE - 2) win();
   }
 
   function win() {
@@ -539,7 +562,7 @@ function solvePuzzle(meta, start) {
     if (reduceMotion) { finish(); return; }
     red.el.style.transition = 'transform 0.7s cubic-bezier(.5,0,.9,.6), opacity 0.7s ease-in';
     red.el.style.opacity = '0';
-    red.el.style.transform = 'translate(' + 6.4 * cell + 'px,' + red.fixed * cell + 'px)';
+    red.el.style.transform = 'translate(' + (SIZE + 0.4) * cell + 'px,' + red.fixed * cell + 'px)';
     setTimeout(finish, 750);
   }
 
@@ -556,7 +579,12 @@ function solvePuzzle(meta, start) {
 
   function hint() {
     if (solved) return;
-    const sol = solvePuzzle(metaArr(), posArr());
+    setStatus('Working out a hint...');
+    setTimeout(runHint, 30);
+  }
+  function runHint() {
+    if (solved) return;
+    const sol = solvePuzzle(metaArr(), posArr(), SIZE);
     if (!sol || !sol.length) return;
     const m = sol[0], v = veh[m.i];
     const dist = Math.abs(m.to - m.from);
